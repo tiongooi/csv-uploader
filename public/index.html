@@ -1,0 +1,120 @@
+<html>
+
+<head>
+  <title>Hello....</title>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.4.2/react.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.4.2/react-dom.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.21.1/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.min.js"></script>
+  <script type="text/babel">
+  class Client extends React.Component {
+    constructor(props) {
+      super(props)
+      this.state = { lists: [], selectedList: 0 }
+      this.handleGetData = this.handleGetData.bind(this)
+      this.handleUpload = this.handleUpload.bind(this)
+    }
+
+    handleUpload(ev) {
+      const csv = ev.target.files[0]
+
+      // el.target.files = null
+      if (csv['type'] !== 'text/csv') {
+        alert('only CSV is allowed')
+        return false
+      }
+      const data = new FormData()
+      data.append('account', ev.target.files[0])
+      axios.post('/upload', data).then(({data}) => {
+
+        this.handleGetData(data)
+      }).catch(e => console.log(e))
+    }
+
+    handleGetData(data) {
+      console.log('new data', data)
+      let {newList:list, orderByAsc} = data
+      let lists = JSON.parse(JSON.stringify(this.state.lists))
+      lists.push({list, orderByAsc})
+      this.setState({lists})
+    }
+
+    handleToggleOrder() {
+      if (!this.state.lists.length) return false
+      let currentSelected = this.state.selectedList
+      let lists = JSON.parse(JSON.stringify(this.state.lists))
+      lists.splice(currentSelected, 1, { orderByAsc: !!lists[currentSelected]['orderByAsc'], list: lists[currentSelected]['list'].reverse() })
+      this.setState({lists})
+    }
+
+    handleTogglePage(action) {
+      let currentSelected = this.state.selectedList
+      if ((currentSelected === (this.state.lists.length - 1)) && (action === 'next')) return false
+      if ((currentSelected === 0) && (action === 'previous')) return false
+      console.log(action)
+      this.setState({selectedList: action === 'next'? (currentSelected + 1) : (currentSelected - 1) })
+    }
+
+      render() {
+          return (
+            <div>
+              <div>
+                <p>
+                  CSV UPLOADER
+                </p>
+                <input id='csv-input' type='file' name='file' onChange={this.handleUpload}/>
+              </div>
+              <div>
+                <p>
+                  Page {this.state.lists.length ? this.state.selectedList + 1:0}/{this.state.lists.length}
+                </p>
+                <button onClick={()=> this.handleToggleOrder()}>toggle order</button><br /><br />
+                <button onClick={()=> this.handleTogglePage('previous')}>{`<`}</button>
+                <button onClick={()=> this.handleTogglePage('next')}>{`>`}</button>
+                <Table data={this.state.lists[this.state.selectedList]} />
+              </div>
+            </div>
+          )
+      }
+  }
+
+  const Table = props => {
+    if (!props.data) return false
+    let rawData = JSON.parse(JSON.stringify(props.data['list']))
+    let parsedData = rawData.map(({name, rest}) => ({name, ...(JSON.parse(rest))}))
+    return (
+      <div>
+        <table>
+          <thead>
+            <tr>
+              {
+                Object.keys(parsedData[0]).map(label => <th key={label}>{label}</th>)
+              }
+            </tr>
+          </thead>
+          <tbody>
+            {
+              parsedData.map((row, idx) => {
+                return <tr key={idx}>
+                  {
+                    Object.keys(row).map(data => <td key={data}>{row[data]}</td>)
+                  }
+                </tr>
+              })
+            }
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  ReactDOM.render(
+      <Client />,
+      document.getElementById('root')
+  )
+  </script>
+</body>
+</html>
