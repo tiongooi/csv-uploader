@@ -7,7 +7,7 @@ const express    = require('express'),
       chunk      = require('./lib/chunk'),
       multer     = require('multer'),
       upload     = multer({ dest: 'uploads/' }),
-      TABLE_NAME = 'heyheyhey'
+      TABLE_NAME = 'heyheyheyhohoho'
 
 ;(async () => {
   const app    = express(),
